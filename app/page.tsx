@@ -1,103 +1,260 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import { Product } from "@/types/product";
+import ProductForm from "@/components/ProductForm";
+import ConfirmDialog from "@/components/ConfirmDialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import SideMenu from "@/components/SideMenu";
+
+export default function HomePage() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [filterText, setFilterText] = useState("");
+  const [filterField, setFilterField] = useState<
+    "name" | "supplierEmail" | "price" | "entryDate"
+  >("name");
+  const [filterOperator, setFilterOperator] = useState<
+    "contains" | "equal" | "greater" | "less"
+  >("contains");
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+
+  useEffect(() => {
+    const stored = localStorage.getItem("products");
+    if (stored) setProducts(JSON.parse(stored));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("products", JSON.stringify(products));
+  }, [products]);
+
+  const handleSave = (product: Product) => {
+    const updated = editingProduct
+      ? products.map((p) => (p.id === product.id ? product : p))
+      : [...products, product];
+
+    setProducts(updated);
+    setEditingProduct(null);
+  };
+
+  const handleEdit = (product: Product) => setEditingProduct(product);
+
+  const handleDelete = (id: string) => {
+    const updated = products.filter((p) => p.id !== id);
+    setProducts(updated);
+    toast.success("Producto eliminado con éxito");
+  };
+
+  const filterProduct = (product: Product) => {
+    const val = product[filterField];
+
+    if (filterField === "price") {
+      const target = parseFloat(filterText);
+      if (isNaN(target)) return true;
+
+      if (filterOperator === "equal") return product.price === target;
+      if (filterOperator === "greater") return product.price > target;
+      if (filterOperator === "less") return product.price < target;
+    }
+
+    if (filterField === "entryDate") {
+      if (!filterText) return true;
+      if (filterOperator === "equal") return product.entryDate === filterText;
+      if (filterOperator === "greater") return product.entryDate > filterText;
+      if (filterOperator === "less") return product.entryDate < filterText;
+    }
+
+    return val.toString().toLowerCase().includes(filterText.toLowerCase());
+  };
+
+  const filteredProducts = products.filter(filterProduct);
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="max-w-3xl mx-auto p-6 space-y-8">
+      <div>
+        <SideMenu />
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      <h1 className="text-3xl font-bold text-white">
+        📦 Catálogo de Productos
+      </h1>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>
+            {editingProduct ? "Editar Producto" : "Agregar Producto"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ProductForm
+            onSave={handleSave}
+            editingProduct={editingProduct}
+            onCancelEdit={() => setEditingProduct(null)}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        </CardContent>
+      </Card>
+
+      {products.length > 0 && (
+        <section className="space-y-4">
+          <div className="space-y-2">
+            <h2 className="text-2xl font-semibold text-white">
+              📋 Lista de Productos
+            </h2>
+
+            <div className="flex flex-wrap gap-2 items-center">
+              {filterField === "entryDate" ? (
+                <Input
+                  type="date"
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                  className="flex-1 text-white  placeholder:text-white"
+                />
+              ) : (
+                <Input
+                  placeholder={`Filtrar por ${filterField}`}
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                  className="flex-1  text-white placeholder:text-white"
+                />
+              )}
+
+              <Select
+                value={filterField}
+                onValueChange={(val) => {
+                  const typedVal = val as
+                    | "name"
+                    | "supplierEmail"
+                    | "price"
+                    | "entryDate";
+                  setFilterField(typedVal);
+
+                  if (typedVal === "price" || typedVal === "entryDate") {
+                    setFilterOperator("equal"); // podés cambiar a "greater" o el que prefieras
+                  } else {
+                    setFilterOperator("contains"); // para los campos de texto
+                  }
+                }}
+              >
+                <SelectTrigger className="w-[150px] text-white">
+                  <SelectValue placeholder="Campo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="name">Nombre</SelectItem>
+                  <SelectItem value="supplierEmail">Proveedor</SelectItem>
+                  <SelectItem value="price">Precio</SelectItem>
+                  <SelectItem value="entryDate">Fecha</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {(filterField === "price" || filterField === "entryDate") && (
+                <Select
+                  value={filterOperator}
+                  onValueChange={(val) =>
+                    setFilterOperator(val as "equal" | "greater" | "less")
+                  }
+                >
+                  <SelectTrigger className="w-[130px]  text-white placeholder:text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="equal">Igual</SelectItem>
+                    <SelectItem value="greater">Mayor</SelectItem>
+                    <SelectItem value="less">Menor</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+
+          {paginatedProducts.length > 0 ? (
+            paginatedProducts.map((product) => (
+              <Card key={product.id} className="transition hover:scale-[1.01]">
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold ">{product.name}</h3>
+                    <span className="bg-green-600/80 text-white text-sm font-medium px-3 py-1 rounded-full shadow-inner">
+                      ${product.price.toFixed(2)}
+                    </span>
+                  </div>
+
+                  <div className="text-sm space-y-1 ">
+                    <p>
+                      <span className="font-semibold">Proveedor:</span>{" "}
+                      {product.supplierEmail}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Fecha de ingreso:</span>{" "}
+                      {product.entryDate}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 w-full">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleEdit(product)}
+                      className="w-full sm:w-auto"
+                    >
+                      Editar
+                    </Button>
+
+                    <div className="w-full sm:w-auto">
+                      <ConfirmDialog
+                        title="Eliminar producto"
+                        description={`¿Seguro que deseas eliminar el producto "${product.name}"?`}
+                        onConfirm={() => handleDelete(product.id)}
+                        trigger={
+                          <Button
+                            variant="destructive"
+                            className="w-full sm:w-auto"
+                          >
+                            Eliminar
+                          </Button>
+                        }
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            <p className="text-muted-foreground">
+              No se encontraron resultados.
+            </p>
+          )}
+
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 pt-4">
+              {Array.from({ length: totalPages }, (_, i) => (
+                <Button
+                  key={i}
+                  variant={currentPage === i + 1 ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCurrentPage(i + 1)}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+    </main>
   );
 }
