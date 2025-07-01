@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Product } from "@/types/product";
 import ProductForm from "@/components/ProductForm";
 import ConfirmDialog from "@/components/ConfirmDialog";
@@ -31,6 +31,8 @@ export default function HomePage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const formRef = useRef<HTMLDivElement | null>(null);
+
   useEffect(() => {
     const stored = localStorage.getItem("products");
     if (stored) setProducts(JSON.parse(stored));
@@ -49,7 +51,12 @@ export default function HomePage() {
     setEditingProduct(null);
   };
 
-  const handleEdit = (product: Product) => setEditingProduct(product);
+  const handleEdit = (product: Product) => {
+    setEditingProduct(product);
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100); // Pequeño delay para asegurar que se monte primero
+  };
 
   const handleDelete = (id: string) => {
     const updated = products.filter((p) => p.id !== id);
@@ -96,7 +103,7 @@ export default function HomePage() {
         📦 Catálogo de Productos
       </h1>
 
-      <Card>
+      <Card ref={formRef}>
         <CardHeader>
           <CardTitle>
             {editingProduct ? "Editar Producto" : "Agregar Producto"}
