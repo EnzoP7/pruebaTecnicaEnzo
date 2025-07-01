@@ -131,14 +131,33 @@ export default function HomePage() {
                   type="date"
                   value={filterText}
                   onChange={(e) => setFilterText(e.target.value)}
-                  className="flex-1 text-white  placeholder:text-white"
+                  className="flex-1 text-white placeholder:text-white"
+                  placeholder="Filtrar por fecha"
                 />
               ) : (
                 <Input
-                  placeholder={`Filtrar por ${filterField}`}
+                  type="text"
+                  inputMode={filterField === "price" ? "decimal" : undefined}
+                  pattern={
+                    filterField === "price" ? "[0-9]*[.,]?[0-9]*" : undefined
+                  }
                   value={filterText}
-                  onChange={(e) => setFilterText(e.target.value)}
-                  className="flex-1  text-white placeholder:text-white"
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (filterField === "price") {
+                      const valid = /^[0-9]*[.,]?[0-9]*$/.test(value);
+                      if (!valid && value !== "") return;
+                    }
+                    setFilterText(value);
+                  }}
+                  className="flex-1 text-white placeholder:text-white"
+                  placeholder={
+                    filterField === "name"
+                      ? "Filtrar por nombre"
+                      : filterField === "supplierEmail"
+                      ? "Filtrar por proveedor"
+                      : "Filtrar por precio"
+                  }
                 />
               )}
 
@@ -150,12 +169,14 @@ export default function HomePage() {
                     | "supplierEmail"
                     | "price"
                     | "entryDate";
+
+                  setFilterText(""); // ⛔ Limpiar el input al cambiar el campo
                   setFilterField(typedVal);
 
                   if (typedVal === "price" || typedVal === "entryDate") {
-                    setFilterOperator("equal"); // podés cambiar a "greater" o el que prefieras
+                    setFilterOperator("equal");
                   } else {
-                    setFilterOperator("contains"); // para los campos de texto
+                    setFilterOperator("contains");
                   }
                 }}
               >
